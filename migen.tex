@@ -1,3 +1,4 @@
+\newcommand*{\SHORTPRES}{}%
 \documentclass[serif,mathserif]{beamer}
 \usepackage{amsmath, amsfonts, epsfig, xspace}
 \usepackage{algorithm,algorithmic}
@@ -82,7 +83,7 @@
 \begin{verbatimtab}
 >>> from migen.fhdl.structure import *
 >>> from migen.fhdl import verilog
->>> counter = Signal(BV(16))
+>>> counter = Signal(16)
 >>> o = Signal()
 >>> comb = [o.eq(counter == 0)]
 >>> sync = [counter.eq(counter + 1)]
@@ -101,7 +102,7 @@ assign o = (counter == 1'd0);
 
 always @(posedge sys_clk) begin
         if (sys_rst) begin
-                counter <= 16'd0;
+                counter <= 1'd0;
         end else begin
                 counter <= (counter + 1'd1);
         end
@@ -128,7 +129,26 @@ def my_generator():
                 for delay in range(prng.randrange(0, 3)):
                         yield None
 master1 = wishbone.Initiator(my_generator())
-master2 = asmibus.Initiator(port, my_generator())
+master2 = asmibus.Initiator(my_generator(), port)
+\end{verbatimtab}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Pytholite}
+\begin{itemize}
+\item Some of those generators are even synthesizable :)
+\item Output: FSM + datapath
+\item Lot of room for improvement (mapping, scheduling, recognized subset)
+\item One application today: high-speed control of the analog RF chain of a radar
+\end{itemize}
+\begin{verbatimtab}
+def generator():
+        for i in range(10):
+                yield TWrite(i, 0)
+bus_if = wishbone.Interface()
+pl = make_pytholite(generator,
+        buses={"def": bus_if})
+f = pl.get_fragment()
 \end{verbatimtab}
 \end{frame}
 
@@ -156,11 +176,11 @@ master2 = asmibus.Initiator(port, my_generator())
 \begin{verbatimtab}
 wishbonecon0 = wishbone.InterconnectShared(
         [cpu0.ibus, cpu0.dbus],
-              [(binc("000"), norflash0.bus),
-               (binc("001"), sram0.bus),
-               (binc("011"), minimac0.membus),
-               (binc("10"), wishbone2asmi0.wishbone),
-               (binc("11"), wishbone2csr0.wishbone)])
+        [(lambda a: a[26:29] == 0, norflash0.bus),
+         (lambda a: a[26:29] == 1, sram0.bus),
+         (lambda a: a[26:29] == 3, minimac0.membus),
+         (lambda a: a[27:29] == 2, wishbone2asmi0.wishbone),
+         (lambda a: a[27:29] == 3, wishbone2csr0.wishbone)])
 \end{verbatimtab}
 \end{frame}
 
@@ -177,6 +197,25 @@ bank = csrgen.Bank([_rxtx, _divisor] + events.get_registers(),
 \end{verbatimtab}
 \end{frame}
 
+\ifdefined\SHORTPRES
+\begin{frame}
+\frametitle{ASMI}
+ASMI (Advanced System Memory Infrastructure) key ideas
+\begin{itemize}
+\item Speed is beautiful: optimize for maximum performance
+\item Only introduce bottlenecks that DRAM already has
+\item Wide transaction issue with dedicated slots
+\item Operate several FSMs concurrently to manage each bank
+\item In a frequency-ratio system, issue multiple DRAM commands from different bank FSMs in a single cycle
+\begin{itemize}
+\item PHY uses SERDES to handle I/O
+\item FPGAs are horribly and painfully SLOW, so we need such tricks even for DDR333 (2002!!!)
+\item and still we can only reach 1.8Gbps/pin on a Virtex-7, while commodity GPUs have 5Gbps/pin
+\end{itemize}
+\item Reorder commands to minimize dead times (row switches, read-write turnaround)
+\end{itemize}
+\end{frame}
+\else
 \begin{frame}
 \frametitle{ASMI}
 \includegraphics[width=\textwidth]{asmi_topology.png} \\
@@ -223,6 +262,7 @@ Memory controller operates several \textit{bank machines} in parallel
 \item Ensures write-to-read (tWTR) specification is met
 \end{itemize}
 \end{frame}
+\fi
 
 \begin{frame}
 \frametitle{Migen support}
@@ -244,8 +284,7 @@ Memory controller operates several \textit{bank machines} in parallel
 \item Similar to LabVIEW or Pure Data
 \item Parallelizable and relatively intuitive
 \item Migen provides infrastructure for actors (functional units) written in FHDL
-\item Migen provides an actor library for arithmetic, DMA (Wishbone and ASMI), simulation, etc.
-\item Later: high level synthesis of actors? (e.g. c-to-verilog method)
+\item Migen provides an actor library for DMA (Wishbone and ASMI), simulation, etc.
 \end{itemize}
 \end{frame}
 
