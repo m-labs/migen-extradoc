@@ -1,5 +1,6 @@
 \documentclass[11pt]{paper}
 \title{An introduction to Migen}
+\author{S\'ebastien Bourdeauducq}
 \usepackage{palatino}
 \usepackage{color}
 \usepackage{fullpage}
@@ -56,7 +57,7 @@ A VCD file viewer such as GTKWave should also be installed.
 \section{First steps}
 A central component of Migen is the FHDL layer. It allows you to create and manipulate logic designs in Python and convert them to synthesizable Verilog.
 
-Run a Python interpreter and import the Migen FHDL libraries:
+Run a Python interpreter and import the Migen FHDL declarations:
 \begin{verbatim}
 $ python3
 >>> from migen.fhdl.structure import *
@@ -251,10 +252,42 @@ and run the simulator again. It should run the \verb!print_edges! function and p
 ...
 \end{verbatimtab}
 
-\mybox{As an exercise, you can add code that verifies that the transitions are happening on the intended edges (make the test bench self-checking).}
+\mybox{As an exercise, you can add code that verifies that the transitions are happening on the intended edges (i.e. make the test bench self-checking).}
 
 \subsection{Hardware implementation}
+Revert any code changes you have done for simulation purposes and go back to the original design (you can still leave out the explicit conversion to Verilog).
+
+Hardware implementation on supported boards is greatly simplified by using the Mibuild library. This tutorial assumes you have a Milkymist One or a RHINO board. Import the corresponding module with one of these two lines:
+
+\begin{verbatimtab}
+from mibuild.platforms import m1 as board
+from mibuild.platforms import rhino as board
+\end{verbatimtab}
+
+\mybox{See the ``platforms'' folder in the Mibuild sources for a complete list of supported boards. You can also add your own and submit it for inclusion into Mibuild.}
+
+Next, create a platform object and tell Mibuild to map your \verb!led! signal to the first available LED on the board:
+\begin{verbatimtab}
+plat = board.Platform()
+plat.request("user_led", obj=led)
+\end{verbatimtab}
+
+You are now ready to build the bitstream! Mibuild will add a default clock, which has a frequency of 50MHz on the Milkymist One and 100MHz on the RHINO.
+\begin{verbatimtab}
+plat.build_cmdline(f)
+\end{verbatimtab}
+
+Run the script with those modifications, and after a too long compilation process, you will obtain a \verb!top.bit! bitstream file in a newly created folder \verb!build!.
+
+Mibuild assumes the Xilinx tools are installed in \verb!/opt/Xilinx!. If they are not, run your script as follows: \verb!python3 ledblinker.py --ise-path /path_to_ise!
+
+Load the bitstream file using the appropriate programming tool for your board, and you should see the LED blinking.
 
 \section{To go further}
+This tutorial has given you an overview of the base component of Migen, FHDL. It enables developers to use the full power of Python to generate and verify the logic of their designs.
+
+Migen comes with many other components and features that use FHDL to build system-on-chip interconnect, dataflow systems, configuration and status register banks, finite state machines, and more. Read the Migen manual available at \url{http://milkymist.org/3/migen.html} for a more complete description. A heavy user of Migen is the milkymist-ng system-on-chip, whose source code you can obtain from \url{http://milkymist.org/3/mng.html}.
+
+Direct questions and feedback about Migen or this tutorial to the devel@lists.milkymist.org mailing list or the IRC channel \#milkymist on Freenode.
 
 \end{document}
