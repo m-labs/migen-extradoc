@@ -1,5 +1,6 @@
 \documentclass[11pt]{paper}
 \title{An introduction to Migen}
+\subtitle{Version: April 9 2013}
 \author{S\'ebastien Bourdeauducq}
 \usepackage{palatino}
 \usepackage{color}
@@ -126,19 +127,21 @@ In a typical FPGA design, an assignment can be triggered by two types of events:
 \item at the edge of the clock signal \textit{(synchronous assignment)}
 \end{enumerate}
 
-Migen collects assignment lists in an object called \verb!Fragment!, which among other things defines when the assignments in those lists take place. The \verb!Fragment! constructor can take two lists of respectively combinatorial and synchronous statements. If only one list is specified, it assumes it contains combinatorial statements.
+Defining when an assignment takes place is done by using the in-place addition operation (\verb!+=!) on special properties of a \verb!Module! object. The \verb!comb! special property makes the assignment combinatorial, while the \verb!sync! property synchronizes it with the default (aka system) clock.
 
 \mybox{Migen supports designs with multiple clock domains, but they are beyond the scope of this tutorial.}
 
 We can now fully model a pure (combinatorial) \verb!OR! gate between signals \verb!a!, \verb!b! and \verb!x!:
 \begin{verbatim}
->>> f = Fragment([x.eq(a | b)])
+>>> from migen.fhdl.module import Module
+>>> my_or = Module()
+>>> my_or.comb += x.eq(a | b)
 \end{verbatim}
 
-Fragments are convertible to Verilog. Note the \verb!ios! option of the \verb!convert! function, that specifies which signals (in our case, all of them) should be exported as inputs/outputs of the Verilog module. Without that option, signals would stay inside the Verilog module (try it).
+Modules are convertible to Verilog. Note the \verb!ios! option of the \verb!convert! function, that specifies which signals (in our case, all of them) should be exported as inputs/outputs of the Verilog module. Without that option, signals would stay inside the Verilog module (try it).
 \begin{verbatimtab}
 >>> from migen.fhdl import verilog
->>> print(verilog.convert(f, ios={a, b, x}))
+>>> print(verilog.convert(my_or, ios={a, b, x}))
 /* Machine-generated using Migen */
 module top(
         input a,
@@ -156,42 +159,44 @@ assign x = (a | b);
 endmodule
 \end{verbatimtab}
 
-\mybox{Fragments from different parts of a complex design can be combined (e.g. using the + operator) to form one large fragment that is finally converted to Verilog for synthesis.}
-
 \section{A LED blinker}
 \subsection{Design}
-We are now ready for a slightly more complicated design. It consists of a decrementing 32-bit counter, which, when it reaches 0, toggles a one-bit signal (which will blink a LED) and reloads from another signal (that controls the period of the toggling).
+We are now ready for a slightly more complicated design. It consists of a decrementing counter, which, when it reaches 0, toggles a one-bit signal (which will blink a LED) and reloads from another signal (that controls the period of the toggling).
 
 Create a file \verb!ledblinker.py! containing the following:
 
 \begin{verbatimtab}
 from migen.fhdl.structure import *
+from migen.fhdl.module import Module
 from migen.fhdl import verilog
 
-counter = Signal(32)
-period = Signal(32)
-led = Signal()
+class Blinker(Module):
+	def __init__(self, led, maxperiod):
+		counter = Signal(max=maxperiod+1)
+		period = Signal(max=maxperiod+1)
+		self.comb += period.eq(maxperiod)
+		self.sync += If(counter == 0,
+				led.eq(~led),
+				counter.eq(period)
+			).Else(
+				counter.eq(counter - 1)
+			)
 
-comb = [
-	period.eq(30000000)
-]
-sync = [
-	If(counter == 0,
-		led.eq(~led),
-		counter.eq(period)
-	).Else(
-		counter.eq(counter - 1)
-	)
-]
-f = Fragment(comb, sync)
-print(verilog.convert(f, ios={led}))
+led = Signal()
+my_blinker = Blinker(led, 30000000)
+print(verilog.convert(my_blinker, ios={led}))
 \end{verbatimtab}
 
-Notice the use of the \verb!If! object, which represents conditional statements (which have the same sense as in Verilog or VHDL). Another Python syntax trick is used here for \verb!Else!, which is actually a method of the \verb!If! object that modifies the latter when called and inserts the statement list for the ``false'' part of the conditional.
+Take note of the following points:
+\begin{itemize}
+\item we are inheriting from the \verb!Module! class. This is the preferred way of creating a component in Migen, rather than instantiating \verb!Module! directly and externally using its special properties as we did before. In a more complex design, a module can integrate other modules by using the \verb!submodules! special property.
+\item another way to create multi-bit signals is to use the \verb!max! parameter of the constructor, which specifies the exclusive upper bound that the value of the signal can reach. There is a similar \verb!min! parameter. Both \verb!min! and/or \verb!max! can be negative, in which case Migen will use two's complement arithemetic to represent negative values.
+\item we use the \verb!If! object, which represents conditional statements (which have the same sense as in Verilog or VHDL). Another Python syntax trick is used here for \verb!Else!, which is actually a method of the \verb!If! object that modifies the latter when called and inserts the statement list for the ``false'' part of the conditional.
+\end{itemize}
 
 Run this script and examine the generated Verilog source.
 
-\mybox{As an exercise, you can add a control signal that toggles between a high and a slow blinking frequency. Conditional statements can also be used in combinatorial lists (as in Verilog or VHDL).}
+\mybox{As an exercise, you can add a control signal that toggles between a high and a slow blinking frequency. Conditional statements can also be used in combinatorial lists (as in Verilog or VHDL). When using += on a special Module property, the statement(s) you specify are added to the existing statements in that module.}
 
 \subsection{Simulation}
 For the purposes of the simulation, set the period signal to a lower value, e.g. 5. Add the following to the script:
@@ -200,7 +205,7 @@ from migen.sim.generic import Simulator, TopLevel
 
 ...
 
-sim = Simulator(f, TopLevel("ledblinker.vcd"))
+sim = Simulator(my_blinker, TopLevel("ledblinker.vcd"))
 sim.run(200)
 \end{verbatimtab}
 
@@ -209,7 +214,7 @@ You can remove the import of the \verb!migen.fhdl.verilog! module and the printi
 $ gtkwave ledblinker.vcd
 \end{verbatim}
 
-\begin{figure}[htp]
+\begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{gtkwave.png}
 \caption{LED blinker signals in GTKWave.}
@@ -220,26 +225,27 @@ Notice that a clock and reset signal have been added automatically.
 Since observing waveforms manually is a tedious and error-prone process, Migen lets you read and write simulated signals from Python. All the libraries and features that Python offers can be used, which enables you to create powerful test benches. In this tutorial, we will simply print out at which clock cycles the transitions on \verb!led! occur.
 
 Add the following code to the script:
+\begin{samepage}
 \begin{verbatimtab}
-v_led_old = 0
-def print_edges(s):
-	global v_led_old
-	v_led = s.rd(led) # read the current signal value
-	if v_led != v_led_old:
-		print("{old}->{new} cycle={cycle}".format(
-			old=v_led_old, new=v_led,
-			cycle=s.cycle_counter))
-		v_led_old = v_led
+...
+class Blinker(Module):
+	def __init__(self, led, maxperiod):
+		self.v_led_old = 0
+		...
+
+	def do_simulation(self, s):
+		v_led = s.rd(led) # read the current signal value
+		if v_led != self.v_led_old:
+			print("{old}->{new} cycle={cycle}".format(
+				old=self.v_led_old, new=v_led,
+				cycle=s.cycle_counter))
+			self.v_led_old = v_led
 \end{verbatimtab}
+\end{samepage}
 
-We will now use another \verb!Fragment! feature, the \textit{list of simulation functions}. At each simulated clock cycle, the Migen simulator runs in turn all the functions in this list, passing them an object that lets them manipulate the values of the signals.
+We are using another \verb!Module! feature, the \verb!do_simulation! method. At each simulated clock cycle, the Migen simulator runs this function in each \verb!Module!, passing them an object that lets them manipulate the values of the signals.
 
-Create the fragment as follows:
-\begin{verbatimtab}
-f = Fragment(comb, sync, sim=[print_edges])
-\end{verbatimtab}
-
-and run the simulator again. It should run the \verb!print_edges! function and produce the following output:
+Run the simulator again. It should run the \verb!do_simulation! method and produce the following output:
 \begin{verbatimtab}
 0->1 cycle=1
 1->0 cycle=7
@@ -257,31 +263,41 @@ and run the simulator again. It should run the \verb!print_edges! function and p
 \subsection{Hardware implementation}
 Revert any code changes you have done for simulation purposes and go back to the original design (you can still leave out the explicit conversion to Verilog).
 
-Hardware implementation on supported boards is greatly simplified by using the Mibuild library. This tutorial assumes you have a Milkymist One or a RHINO board. Import the corresponding module with one of these two lines:
+Hardware implementation on supported boards is greatly simplified by using the Mibuild library. This tutorial assumes you have a Milkymist One, a Papilio Pro or a RHINO board. Import the corresponding module with one of the following lines:
 
 \begin{verbatimtab}
 from mibuild.platforms import m1 as board
+from mibuild.platforms import papilio_pro as board
 from mibuild.platforms import rhino as board
 \end{verbatimtab}
 
-\mybox{See the ``platforms'' folder in the Mibuild sources for a complete list of supported boards. You can also add your own and submit it for inclusion into Mibuild.}
+\mybox{See the ``platforms'' folder in the Mibuild sources for a complete list of supported boards. You can also add your own and submit it for inclusion into Mibuild. Altera boards are also supported.}
 
-Next, create a platform object and tell Mibuild to map your \verb!led! signal to the first available LED on the board:
+Next, create a platform object and obtain the \verb!led! signal from Mibuild instead of creating it yourself:
 \begin{verbatimtab}
 plat = board.Platform()
-plat.request("user_led", obj=led)
+led = plat.request("user_led")
+my_blinker = Blinker(led, 30000000)
 \end{verbatimtab}
 
-You are now ready to build the bitstream! Mibuild will add a default clock, which has a frequency of 50MHz on the Milkymist One and 100MHz on the RHINO.
+You are now ready to build the bitstream! Mibuild will add a default clock, which has a frequency of 50MHz on the Milkymist One, 32MHz on the Papilio Pro and 100MHz on the RHINO.
 \begin{verbatimtab}
-plat.build_cmdline(f)
+plat.build_cmdline(my_blinker)
 \end{verbatimtab}
 
 Run the script with those modifications, and after a too long compilation process, you will obtain a \verb!top.bit! bitstream file in a newly created folder \verb!build!.
 
 Mibuild assumes the Xilinx tools are installed in \verb!/opt/Xilinx!. If they are not, run your script as follows: \verb!python3 ledblinker.py --ise-path /path_to_ise!
 
-Load the bitstream file using the appropriate programming tool for your board, and you should see the LED blinking.
+Load the bitstream file using the appropriate programming tool for your board, and you should see the LED blinking. The Milkymist One and Papilio Pro boards can be programmed with UrJTAG:
+
+\begin{verbatim}
+$ jtag
+jtag> cable milkymist # for Milkymist One
+jtag> cable Flyswatter # for Papilio Pro
+jtag> detect
+jtag> pld load build/top.bit
+\end{verbatim}
 
 \section{To go further}
 This tutorial has given you an overview of the base component of Migen, FHDL. It enables developers to use the full power of Python to generate and verify the logic of their designs.
