@@ -1,6 +1,6 @@
 \documentclass[11pt]{paper}
 \title{An introduction to Migen}
-\subtitle{Version: April 9 2013}
+\subtitle{Version: July 19 2013}
 \author{S\'ebastien Bourdeauducq}
 \usepackage{palatino}
 \usepackage{color}
@@ -61,7 +61,7 @@ A central component of Migen is the FHDL layer. It allows you to create and mani
 Run a Python interpreter and import the Migen FHDL declarations:
 \begin{verbatim}
 $ python3
->>> from migen.fhdl.structure import *
+>>> from migen.fhdl.std import *
 \end{verbatim}
 
 The basic building block of a FHDL design is the \verb!Signal! object. It serves the same purpose as \verb!signal! in VHDL and \verb!wire! or \verb!reg! in Verilog.
@@ -133,7 +133,6 @@ Defining when an assignment takes place is done by using the in-place addition o
 
 We can now fully model a pure (combinatorial) \verb!OR! gate between signals \verb!a!, \verb!b! and \verb!x!:
 \begin{verbatim}
->>> from migen.fhdl.module import Module
 >>> my_or = Module()
 >>> my_or.comb += x.eq(a | b)
 \end{verbatim}
@@ -166,8 +165,7 @@ We are now ready for a slightly more complicated design. It consists of a decrem
 Create a file \verb!ledblinker.py! containing the following:
 
 \begin{verbatimtab}
-from migen.fhdl.structure import *
-from migen.fhdl.module import Module
+from migen.fhdl.std import *
 from migen.fhdl import verilog
 
 class Blinker(Module):
@@ -263,9 +261,10 @@ Run the simulator again. It should run the \verb!do_simulation! method and produ
 \subsection{Hardware implementation}
 Revert any code changes you have done for simulation purposes and go back to the original design (you can still leave out the explicit conversion to Verilog).
 
-Hardware implementation on supported boards is greatly simplified by using the Mibuild library. This tutorial assumes you have a Milkymist One, a Papilio Pro or a RHINO board. Import the corresponding module with one of the following lines:
+Hardware implementation on supported boards is greatly simplified by using the Mibuild library. This tutorial assumes you have a Mixxeo, a Milkymist One, a Papilio Pro or a RHINO board. Import the corresponding module with one of the following lines:
 
 \begin{verbatimtab}
+from mibuild.platforms import mixxeo as board
 from mibuild.platforms import m1 as board
 from mibuild.platforms import papilio_pro as board
 from mibuild.platforms import rhino as board
@@ -280,7 +279,7 @@ led = plat.request("user_led")
 my_blinker = Blinker(led, 30000000)
 \end{verbatimtab}
 
-You are now ready to build the bitstream! Mibuild will add a default clock, which has a frequency of 50MHz on the Milkymist One, 32MHz on the Papilio Pro and 100MHz on the RHINO.
+You are now ready to build the bitstream! Mibuild will add a default clock, which has a frequency of 50MHz on the Mixxeo and Milkymist One, 32MHz on the Papilio Pro and 100MHz on the RHINO.
 \begin{verbatimtab}
 plat.build_cmdline(my_blinker)
 \end{verbatimtab}
@@ -289,11 +288,11 @@ Run the script with those modifications, and after a too long compilation proces
 
 Mibuild assumes the Xilinx tools are installed in \verb!/opt/Xilinx!. If they are not, run your script as follows: \verb!python3 ledblinker.py --ise-path /path_to_ise!
 
-Load the bitstream file using the appropriate programming tool for your board, and you should see the LED blinking. The Milkymist One and Papilio Pro boards can be programmed with UrJTAG:
+Load the bitstream file using the appropriate programming tool for your board, and you should see the LED blinking. The Mixxeo, Milkymist One and Papilio Pro boards can be programmed with UrJTAG:
 
 \begin{verbatim}
 $ jtag
-jtag> cable milkymist # for Milkymist One
+jtag> cable milkymist # for Mixxeo and Milkymist One
 jtag> cable Flyswatter # for Papilio Pro
 jtag> detect
 jtag> pld load build/top.bit
