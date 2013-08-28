@@ -1,23 +1,39 @@
-\documentclass[serif,mathserif]{beamer}
+\documentclass{beamer}
+\usepackage{marvosym}
+\usepackage{lato}
 \usepackage{amsmath, amsfonts, epsfig, xspace}
 \usepackage{algorithm,algorithmic}
 \usepackage{pstricks,pst-node}
 \usepackage{moreverb}
 \usepackage[normal,tight,center]{subfigure}
-\setlength{\subfigcapskip}{-.5em}
-\usepackage{beamerthemesplit}
-\usetheme{lankton-keynote}
 
-\author{S\'ebastien Bourdeauducq}
+
+\definecolor{UniBlue}{RGB}{43,61,81}
+\definecolor{UniBlueHL}{RGB}{67,98,129}
+\definecolor{UniGreen}{RGB}{54,188,123}
+
+\renewcommand*{\familydefault}{fla}
+\renewcommand*{\sfdefault}{fla}
+
+\newcommand\bgon{\setbeamertemplate{background}{\parbox[b][17cm]{\paperwidth}{%
+\vfill\includegraphics[height=2.5cm]{logo_alt.pdf}\vfill}}}
+\newcommand\bgoff{\setbeamertemplate{background}{}}
+
+\setbeamercolor{title}{fg=white}
+\setbeamercolor{frametitle}{fg=UniGreen}
+\setbeamercolor{structure}{fg=white}
+\setbeamercolor{normal text}{fg=white}
+\setbeamercolor{background canvas}{bg=UniBlue}
+
+\begin{document}
+\fontseries{l}\selectfont
 
 \title{Migen}
 \subtitle{A Python toolbox for building complex digital hardware}
+\author{\fontseries{el}\selectfont S\'ebastien Bourdeauducq}
+\date{\fontseries{el}\selectfont 2013}
 
-\date{2013}
-
-\begin{document}
-
-\maketitle
+\frame{\titlepage}
 
 \begin{frame}
 \begin{centering}
@@ -25,6 +41,8 @@
 \includegraphics[width=\textwidth]{migenblock.png}
 \end{centering}
 \end{frame}
+
+\bgon
 
 \begin{frame}[fragile]
 \frametitle{FHDL}
@@ -49,6 +67,7 @@
 \end{itemize}
 \end{frame}
 
+\bgoff
 \begin{frame}[fragile]
 \frametitle{FHDL crash course}
 \begin{itemize}
@@ -59,6 +78,7 @@
 \item Signals can be combined to form expressions.
 \begin{itemize}
 \item e.g. \verb!(a & b) | c!
+\item arithmetic also supported, with user-friendly sign extension rules (\`a la MyHDL)
 \end{itemize}
 \item Signals have a \verb!eq! method that returns an assignment to that signal.
 \begin{itemize}
@@ -71,6 +91,7 @@
 \item Modules can be converted for synthesis or simulated.
 \end{itemize}
 \end{frame}
+\bgon
 
 \begin{frame}[fragile]
 \frametitle{Conversion for synthesis}
@@ -89,6 +110,7 @@
 \end{verbatimtab}
 \end{frame}
 
+\bgoff
 \begin{frame}[fragile]
 \begin{verbatimtab}
 module top(input sys_rst, input sys_clk, output o);
@@ -108,9 +130,19 @@ end
 endmodule
 \end{verbatimtab}
 \end{frame}
+\bgon
 
 \begin{frame}[fragile]
 \frametitle{Name mangling}
+\begin{itemize}
+\item Problem: how to map the structured Python \verb!Signal! namespace to the flat Verilog namespace?
+\item Keep the generated code readable (e.g. for debugging or reading timing reports)
+\item Migen uses Python bytecode analysis and introspection to generate (often) meaningful names
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Name mangling in action}
 \begin{verbatimtab}
 class Foo:
     def __init__(self):
@@ -127,6 +159,7 @@ $\rightarrow$ foo0\_la0, foo0\_la1, foo0\_lb0, foo0\_lb1, foo1\_la0, ...,
 \centering \includegraphics[width=\textwidth]{name_mangling.png}
 \end{frame}
 
+\bgoff
 \begin{frame}[fragile]
 \frametitle{Simulation}
 \begin{itemize}
@@ -139,10 +172,9 @@ def my_generator():
         for x in range(10):
                 t = TWrite(x, 2*x)
                 yield t
-                print("Wrote in " + str(t.latency) + " cycle(s)")
-                # Insert some dead cycles to simulate bus inactivity.
+                print("Latency: " + str(t.latency))
                 for delay in range(prng.randrange(0, 3)):
-                        yield None
+                        yield None # inactivity
 master1 = wishbone.Initiator(my_generator())
 master2 = lasmibus.Initiator(my_generator(), port)
 \end{verbatimtab}
@@ -166,6 +198,7 @@ pl = make_pytholite(generator,
 ... verilog.convert(pl) ...
 \end{verbatimtab}
 \end{frame}
+\bgon
 
 \begin{frame}[fragile]
 \frametitle{Bus support}
@@ -182,16 +215,16 @@ wishbonecon0 = wishbone.InterconnectShared(
         [(lambda a: a[26:29] == 0, norflash0.bus),
          (lambda a: a[26:29] == 1, sram0.bus),
          (lambda a: a[26:29] == 3, minimac0.membus),
-         (lambda a: a[27:29] == 2, wishbone2lasmi0.wishbone),
-         (lambda a: a[27:29] == 3, wishbone2csr0.wishbone)])
+         (lambda a: a[27:29] == 2, wishbone2lasmi0.wb),
+         (lambda a: a[27:29] == 3, wishbone2csr0.wb)])
 \end{verbatimtab}
 \end{frame}
 
 \begin{frame}[fragile]
 \frametitle{CSR banks and interrupt controllers}
 \begin{verbatimtab}
-_rxtx = CSR("rxtx", 8)
-_divisor = CSRStorage("divisor", 16, reset=int(clk_freq/baud/16))
+_rxtx = CSR(8)
+_divisor = CSRStorage(16)
 events = EventManager(_tx_event, _rx_event)
 events.tx = EventSourceProcess()
 events.rx = EventSourcePulse()
@@ -223,6 +256,7 @@ Memory controller operates several \textit{bank machines} in parallel
 \end{itemize}
 \end{frame}
 
+\bgoff
 \begin{frame}
 \frametitle{LASMIcon (milkymist-ng)}
 \textit{Command steering} stage picks final requests
@@ -240,6 +274,7 @@ Memory controller operates several \textit{bank machines} in parallel
 \item Ensures write-to-read (tWTR) specification is met
 \end{itemize}
 \end{frame}
+\bgon
 
 \begin{frame}
 \frametitle{Migen support}
@@ -265,13 +300,15 @@ Memory controller operates several \textit{bank machines} in parallel
 \end{itemize}
 \end{frame}
 
+\bgoff
+
 \begin{frame}
 Migen is open source!
 \begin{itemize}
-\item BSD
+\item BSD license
 \begin{itemize}
-\item Can be used in proprietary designs.
-\item Contributing what you can is encouraged.
+\item Compatible with proprietary designs.
+\item Contributing what you can is \textit{encouraged}.
 \end{itemize}
 \item http://milkymist.org/3/migen.html
 \item http://github.com/milkymist/migen
