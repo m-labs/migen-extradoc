@@ -64,7 +64,7 @@
 \begin{itemize}
 \item e.g. \verb!x.eq((a & b) | c)!
 \end{itemize}
-\item Assignments are given an execution trigger (combinatorial or synchronous to some clock) and made part of a \verb!Module!.
+\item User gives an execution trigger (combinatorial or synchronous to some clock) to assignments, and makes them part of a \verb!Module!.
 \begin{itemize}
 \item Control structures (\verb!If!, \verb!Case!) also supported.
 \end{itemize}
@@ -107,6 +107,24 @@ end
 
 endmodule
 \end{verbatimtab}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Name mangling}
+\begin{verbatimtab}
+class Foo:
+    def __init__(self):
+        self.la = [Signal() for x in range(2)]
+        self.lb = [Signal() for x in range(3)]
+a = [Foo() for x in range(3)]
+
+-> foo0_la0, foo0_la1, foo0_lb0, foo0_lb1, foo1_la0, ...,
+  foo1_lb0, ..., foo2_lb2
+\end{verbatimtab}
+\end{frame}
+
+\begin{frame}
+\centering \includegraphics[width=\textwidth]{name_mangling.png}
 \end{frame}
 
 \begin{frame}[fragile]
