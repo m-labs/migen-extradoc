@@ -159,12 +159,21 @@ $\rightarrow$ foo0\_la0, foo0\_la1, foo0\_lb0, foo0\_lb1, foo1\_la0, ...,
 \centering \includegraphics[width=\textwidth]{name_mangling.png}
 \end{frame}
 
-\bgoff
 \begin{frame}[fragile]
 \frametitle{Simulation}
 \begin{itemize}
 \item Modules can have a Python functions to execute at each clock cycle during simulations.
 \item Simulator provide read and write methods that manipulate FHDL \verb!Signal! objects.
+\item Python libraries useful for DSP testbenches: scipy, matplotlib
+\item Python makes it easy to run multiple simulations with different parameters (including changes of IO timings)
+\item Writing self-checking testbenches is straightforward: reproduciblity, reusability
+\end{itemize}
+\end{frame}
+
+\bgoff
+\begin{frame}[fragile]
+\frametitle{Simulation}
+\begin{itemize}
 \item Powerful Python features, e.g. generators:
 \end{itemize}
 \begin{verbatimtab}
@@ -221,15 +230,19 @@ wishbonecon0 = wishbone.InterconnectShared(
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{CSR banks and interrupt controllers}
+\frametitle{CSR banks}
+Migen user:
 \begin{verbatimtab}
-_rxtx = CSR(8)
-_divisor = CSRStorage(16)
-events = EventManager(_tx_event, _rx_event)
-events.tx = EventSourceProcess()
-events.rx = EventSourcePulse()
-bank = csrgen.Bank([_rxtx, _divisor] + events.get_csrs(),
-     address=address)
+self.baudrate = CSRStorage(16)
+... If(counter == 0,
+  counter.eq(self.baudrate.storage))
+...
+\end{verbatimtab}
+Migen generates address decoder and register logic. \\
+Rhino-gateware does BORPH interfacing. \\
+$\rightarrow$ Software user:
+\begin{verbatimtab}
+/proc/[pid]/hw/ioreg/baudrate
 \end{verbatimtab}
 \end{frame}
 
@@ -277,15 +290,15 @@ Memory controller operates several \textit{bank machines} in parallel
 \bgon
 
 \begin{frame}
-\frametitle{Migen support}
+\frametitle{LASMIcon (milkymist-ng)}
 \begin{itemize}
-\item Migen provides generic components only
-\item e.g. memory controller and PHY are not included
+\item Supports SDR, DDR, LPDDR, DDR2 and DDR3 (partial)
+\item Hardware tested:
 \begin{itemize}
-\item part of milkymist-ng\footnote{https://github.com/milkymist/milkymist-ng}
-\item supports (hardware tested) SDR, DDR, LPDDR, DDR2 and DDR3 (partial) on Spartan-6
+\item Mixxeo digital video mixer (Spartan-6, DDR, 10Gbps)
+\item Experiment control board from Paul-Drude-Institut Berlin (Spartan-6, DDR2, 4Gbps)
+\item FPGA development boards: KC705 (Kintex-7, DDR3), LX9 Microboard (Spartan-6, LPDDR), Altera DE0Nano (Cyclone, SDR), ...
 \end{itemize}
-\item Provides containers, bus simulation components, crossbar interconnect
 \end{itemize}
 \end{frame}
 
@@ -311,6 +324,60 @@ Memory controller operates several \textit{bank machines} in parallel
 \small Graph by C. Burrus ``FFT Flowgraphs'' \url{http://cnx.org/content/m16352/latest/}
 \end{frame}
 
+\bgon
+\begin{frame}[fragile]
+\frametitle{Mibuild}
+Interface between Migen and your FPGA board
+\begin{verbatimtab}
+from mibuild.platforms import roach
+plat = roach.Platform()
+m = YourModule(plat.request("clocks"),
+  plat.request("adc"), plat.request("dac"))
+plat.build_cmdline(m)
+\end{verbatimtab}
+\begin{itemize}
+\item Supports Xilinx: ISE and Vivado (including 7 series)
+\item Supports Altera: Quartus
+\item Runs on Linux and Windows
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Current Migen users}
+\begin{itemize}
+\item Mixxeo digital video mixer
+\item RHINO --- software-defined radio
+\item Vermeer --- radar
+\item NIST --- trapped ion quantum computers
+\item Paul-Drude-Institut Berlin --- experiment control
+\item A few semiconductor companies --- ??? (fixing bugs)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Current and future works}
+\begin{itemize}
+\item Dataflow system overhaul
+\begin{itemize}
+\item Static scheduling when possible
+\item Actor sharing
+\item Better graph language
+\item Unify with Pytholite?
+\end{itemize}
+\item GUI
+\begin{itemize}
+\item Build simple DF graphs more easily
+\item For complex designs, Python programming is great
+\end{itemize}
+\item Direct synthesis (Mist): Migen FHDL to EDIF netlist
+\begin{itemize}
+\item Get rid of the Xst proprietary bloatware
+\item Later: get rid of the P\&R + Bitgen proprietary bloatware
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\bgoff
 
 \begin{frame}
 Migen is open source!
@@ -322,8 +389,9 @@ Migen is open source!
 \end{itemize}
 \item http://milkymist.org/3/migen.html
 \item http://github.com/milkymist/migen
-\item mailing list: http://lists.milkymist.org
+\item Mailing list: http://lists.milkymist.org
 \item IRC: Freenode \#milkymist
+\item Commercial support available
 \end{itemize}
 
 \centering \includegraphics[width=5cm]{migen_logo.png}
