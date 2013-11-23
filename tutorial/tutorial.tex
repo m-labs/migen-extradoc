@@ -1,6 +1,6 @@
 \documentclass[11pt]{paper}
 \title{An introduction to Migen}
-\subtitle{Version: July 19 2013}
+\subtitle{Version: November 23 2013}
 \author{S\'ebastien Bourdeauducq}
 \usepackage{palatino}
 \usepackage{color}
@@ -25,12 +25,14 @@
 \subsection{Third-party tools}
 This tutorial requires a Linux machine with Python 3, Git and Xilinx ISE. Note that Migen cannot be used with Python 2, but most Linux distributions allow you to easily install both Python 2 and Python 3 on the same machine.
 
-\subsection{Migen and Mibuild}
-We simply obtain the sources from the Git repositories and set the \verb!PYTHONPATH! environment variable so that Python searches those directories when importing modules. Alternatively, Migen and Mibuild can be permanently installed on your system by running their respective \verb!setuptools! script (\verb!python3 setup.py install!)
+\subsection{Migen}
+We simply obtain the sources from the Git repository and set the \verb!PYTHONPATH! environment variable so that Python searches that directory when importing modules.
+
+Alternatively, Migen can be permanently installed on your system by running its \verb!setuptools! script (\verb!python3 setup.py install!)
+
 \begin{verbatim}
 $ git clone git://github.com/milkymist/migen.git
-$ git clone git://github.com/milkymist/mibuild.git
-$ export PYTHONPATH=`pwd`/migen:`pwd`/mibuild
+$ export PYTHONPATH=`pwd`/migen
 \end{verbatim}
 
 \subsection{Simulator}
@@ -261,7 +263,7 @@ Run the simulator again. It should run the \verb!do_simulation! method and produ
 \subsection{Hardware implementation}
 Revert any code changes you have done for simulation purposes and go back to the original design (you can still leave out the explicit conversion to Verilog).
 
-Hardware implementation on supported boards is greatly simplified by using the Mibuild library. This tutorial assumes you have a Mixxeo, a Milkymist One, a Papilio Pro or a RHINO board. Import the corresponding module with one of the following lines:
+Hardware implementation on supported boards is greatly simplified by using the Mibuild library which is distributed with Migen. This tutorial assumes you have a Mixxeo, a Milkymist One, a Papilio Pro or a RHINO board. Import the corresponding module with one of the following lines:
 
 \begin{verbatimtab}
 from mibuild.platforms import mixxeo as board
@@ -301,7 +303,7 @@ jtag> pld load build/top.bit
 \section{To go further}
 This tutorial has given you an overview of the base component of Migen, FHDL. It enables developers to use the full power of Python to generate and verify the logic of their designs.
 
-Migen comes with many other components and features that use FHDL to build system-on-chip interconnect, dataflow systems, configuration and status register banks, finite state machines, and more. Read the Migen manual available at \url{http://milkymist.org/3/migen.html} for a more complete description. A heavy user of Migen is the milkymist-ng system-on-chip, whose source code you can obtain from \url{http://milkymist.org/3/mng.html}.
+Migen comes with many other components and features that use FHDL to build system-on-chip interconnect, dataflow systems, configuration and status register banks, finite state machines, and more. Read the Migen manual available at \url{http://milkymist.org/3/migen.html} for a more complete description. A heavy user of Migen is the MiSoC system-on-chip, whose source code you can obtain from \url{http://milkymist.org/3/msc.html}.
 
 Direct questions and feedback about Migen or this tutorial to the devel@lists.milkymist.org mailing list or the IRC channel \#milkymist on Freenode.
 
