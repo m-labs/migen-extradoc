@@ -1,6 +1,6 @@
 \documentclass[11pt]{paper}
 \title{An introduction to Migen}
-\subtitle{Version: November 23 2013}
+\subtitle{Version: February 7th 2014}
 \author{S\'ebastien Bourdeauducq}
 \usepackage{palatino}
 \usepackage{color}
@@ -23,7 +23,7 @@
 
 \section{Software setup}
 \subsection{Third-party tools}
-This tutorial requires a Linux machine with Python 3, Git and Xilinx ISE. Note that Migen cannot be used with Python 2, but most Linux distributions allow you to easily install both Python 2 and Python 3 on the same machine.
+This tutorial requires a Linux machine with Python 3.3+, Git and Xilinx ISE. Note that Migen cannot be used with Python 2, but most Linux distributions allow you to easily install both Python 2 and Python 3 on the same machine.
 
 \subsection{Migen}
 We simply obtain the sources from the Git repository and set the \verb!PYTHONPATH! environment variable so that Python searches that directory when importing modules.
@@ -31,7 +31,7 @@ We simply obtain the sources from the Git repository and set the \verb!PYTHONPAT
 Alternatively, Migen can be permanently installed on your system by running its \verb!setuptools! script (\verb!python3 setup.py install!)
 
 \begin{verbatim}
-$ git clone git://github.com/milkymist/migen.git
+$ git clone git://github.com/m-labs/migen.git
 $ export PYTHONPATH=`pwd`/migen
 \end{verbatim}
 
@@ -201,12 +201,11 @@ Run this script and examine the generated Verilog source.
 \subsection{Simulation}
 For the purposes of the simulation, set the period signal to a lower value, e.g. 5. Add the following to the script:
 \begin{verbatimtab}
-from migen.sim.generic import Simulator, TopLevel
+from migen.sim.generic import run_simulation
 
 ...
 
-sim = Simulator(my_blinker, TopLevel("ledblinker.vcd"))
-sim.run(200)
+run_simulation(my_blinker, ncycles=200, vcd_name="ledblinker.vcd")
 \end{verbatimtab}
 
 You can remove the import of the \verb!migen.fhdl.verilog! module and the printing of the Verilog source. Running the script now produces a VCD file which you can open with GTKWave:
@@ -230,11 +229,12 @@ Add the following code to the script:
 ...
 class Blinker(Module):
 	def __init__(self, led, maxperiod):
+		self.led = led
 		self.v_led_old = 0
 		...
 
-	def do_simulation(self, s):
-		v_led = s.rd(led) # read the current signal value
+	def do_simulation(self, selfp):
+		v_led = selfp.led # read the current signal value
 		if v_led != self.v_led_old:
 			print("{old}->{new} cycle={cycle}".format(
 				old=self.v_led_old, new=v_led,
@@ -243,7 +243,7 @@ class Blinker(Module):
 \end{verbatimtab}
 \end{samepage}
 
-We are using another \verb!Module! feature, the \verb!do_simulation! method. At each simulated clock cycle, the Migen simulator runs this function in each \verb!Module!, passing them an object that lets them manipulate the values of the signals.
+We are using another \verb!Module! feature, the \verb!do_simulation! method. At each simulated clock cycle, the Migen simulator runs this function in each \verb!Module!, passing it a ``proxy'' object in the \verb!selfp! parameter that mirrors the module and lets the function manipulate the values of the signals. Reading a proxy attribute corresponding to a signal from the module returns the value of the signal, and writing to the proxy attribute sets the value of the signal.
 
 Run the simulator again. It should run the \verb!do_simulation! method and produce the following output:
 \begin{verbatimtab}
@@ -303,8 +303,8 @@ jtag> pld load build/top.bit
 \section{To go further}
 This tutorial has given you an overview of the base component of Migen, FHDL. It enables developers to use the full power of Python to generate and verify the logic of their designs.
 
-Migen comes with many other components and features that use FHDL to build system-on-chip interconnect, dataflow systems, configuration and status register banks, finite state machines, and more. Read the Migen manual available at \url{http://milkymist.org/3/migen.html} for a more complete description. A heavy user of Migen is the MiSoC system-on-chip, whose source code you can obtain from \url{http://milkymist.org/3/msc.html}.
+Migen comes with many other components and features that use FHDL to build system-on-chip interconnect, dataflow systems, configuration and status register banks, finite state machines, and more. Read the Migen manual available at \url{http://m-labs.hk/gateware.html} for a more complete description. A heavy user of Migen is the MiSoC system-on-chip, whose source code you can obtain from the same webpage.
 
-Direct questions and feedback about Migen or this tutorial to the devel@lists.milkymist.org mailing list or the IRC channel \#milkymist on Freenode.
+Direct questions and feedback about Migen or this tutorial to the devel@lists.m-labs.hk mailing list or the IRC channel \#m-labs on Freenode.
 
 \end{document}
