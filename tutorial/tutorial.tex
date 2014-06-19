@@ -1,6 +1,6 @@
 \documentclass[11pt]{paper}
 \title{An introduction to Migen}
-\subtitle{Version: February 7th 2014}
+\subtitle{Version: June 19th 2014}
 \author{S\'ebastien Bourdeauducq}
 \usepackage{palatino}
 \usepackage{color}
@@ -238,7 +238,7 @@ class Blinker(Module):
 		if v_led != self.v_led_old:
 			print("{old}->{new} cycle={cycle}".format(
 				old=self.v_led_old, new=v_led,
-				cycle=s.cycle_counter))
+				cycle=selfp.simulator.cycle_counter))
 			self.v_led_old = v_led
 \end{verbatimtab}
 \end{samepage}
