@@ -259,7 +259,7 @@ LASMI (Lightweight Advanced System Memory Infrastructure) key ideas
 \end{frame}
 
 \begin{frame}
-\frametitle{LASMIcon (milkymist-ng)}
+\frametitle{LASMIcon (MiSoC)}
 Memory controller operates several \textit{bank machines} in parallel
 \begin{itemize}
 \item Each bank machine uses the page mode algorithm
@@ -271,7 +271,7 @@ Memory controller operates several \textit{bank machines} in parallel
 
 \bgoff
 \begin{frame}
-\frametitle{LASMIcon (milkymist-ng)}
+\frametitle{LASMIcon (MiSoC)}
 \textit{Command steering} stage picks final requests
 \begin{itemize}
 \item In a frequency-ratio system, may issue multiple commands from several bank machines in a single cycle
@@ -290,9 +290,9 @@ Memory controller operates several \textit{bank machines} in parallel
 \bgon
 
 \begin{frame}
-\frametitle{LASMIcon (milkymist-ng)}
+\frametitle{LASMIcon (MiSoC)}
 \begin{itemize}
-\item Supports SDR, DDR, LPDDR, DDR2 and DDR3 (partial)
+\item Supports SDR, DDR, LPDDR, DDR2 and DDR3
 \item Hardware tested:
 \begin{itemize}
 \item Mixxeo digital video mixer (Spartan-6, DDR, 10Gbps)
@@ -351,6 +351,10 @@ plat.build_cmdline(m)
 \item NIST --- trapped ion quantum computers
 \item Paul-Drude-Institut Berlin --- experiment control
 \item A few semiconductor companies --- ??? (fixing bugs)
+\item OpenVizsla Open Hardware FPGA-based USB analyzer
+\item Miscope -- Small logic analyzer embedded in the FPGA
+\item PCIe Software Defined Radio board with Artix 7
+\item SATA controller for Xilinx 7-series FPGAs
 \end{itemize}
 \end{frame}
 
@@ -409,10 +413,10 @@ Migen is open source!
 \item Compatible with proprietary designs.
 \item Contributing what you can is \textit{encouraged}.
 \end{itemize}
-\item http://milkymist.org/3/migen.html
-\item http://github.com/milkymist/migen
-\item Mailing list: http://lists.milkymist.org
-\item IRC: Freenode \#milkymist
+\item http://m-labs.hk/gateware.html
+\item http://github.com/m-labs/migen
+\item Mailing lists: http://lists.m-labs.hk $=>$ Devel
+\item IRC: Freenode \#m-labs (formerly known as \#milkymist)
 \item Commercial support available
 \end{itemize}
 
